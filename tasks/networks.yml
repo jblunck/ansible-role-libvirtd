@@ -1,0 +1,30 @@
+- name: start virtualization service
+  service: name=libvirtd state=started
+
+- name: gather libvirt facts
+  virt_net:
+    command: facts
+
+- name: destroy default network
+  virt_net:
+    command: destroy
+    name: default
+  when: ansible_libvirt_networks.default is defined
+
+- name: undefine default network
+  virt_net:
+    command: undefine
+    name: default
+  when: ansible_libvirt_networks.default is defined
+
+- name: define maas network
+  virt_net:
+    command: define
+    name: maas
+    xml: '{{ lookup("template", "maas.xml.j2") }}'
+    autostart: yes
+
+- name: activate maas network
+  virt_net:
+    state: active
+    name: maas

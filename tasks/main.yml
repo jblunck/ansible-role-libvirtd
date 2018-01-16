@@ -1,0 +1,23 @@
+- import_tasks: install.yml
+- import_tasks: networks.yml
+
+- name: create bridge br0
+  vars:
+    blacklisted:
+      - lo
+      - br0
+    bridge_device: "{{ ansible_interfaces | difference(blacklisted) | first }}"
+  command: virsh iface-bridge "{{ bridge_device }}" br0
+  notify:
+    - restart network
+  when: ansible_br0 is undefined
+
+# this stops MAAS from configuring DHCP on the ethernet device
+- name: disable cloud-init network configuration
+  copy:
+    content: |
+      network: {config: disabled}
+    dest: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    mode: 0644
+
+- import_tasks: guests.yml

@@ -1,0 +1,27 @@
+#
+# {{ ansible_managed }}
+#
+
+#url --url="http://mirror.centos.org/centos/7/os/x86_64/"
+text
+keyboard us
+lang en_US.UTF-8
+timezone --utc Etc/UTC
+authconfig --enableshadow --passalgo=sha512
+rootpw test
+install
+eula --agreed
+reboot
+
+ignoredisk --only-use=vda
+clearpart --drive=vda --all --initlabel
+zerombr
+bootloader --location=mbr --driveorder=sda --append="elevator=deadline"
+autopart --type=lvm
+
+network  --bootproto=dhcp --device=eth0 --ipv6=auto --activate
+
+%packages
+@core
+@base
+%end

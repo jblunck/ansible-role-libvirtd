@@ -1,0 +1,9 @@
+libvirtd_remote_user: '' # "{{ ansible_ssh_user }}"
+libvirtd_remote_keyfile: '' # "id_rsa.pub"
+libvirtd_remote_keys: []
+
+libvirtd_guests: []
+
+libvirtd_initrd_inject: {}
+
+libvirtd_boot_dir: '/var/lib/libvirt/boot'

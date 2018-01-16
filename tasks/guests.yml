@@ -1,0 +1,68 @@
+- name: start libvirtd
+  service: name=libvirtd state=started
+  register: libvirtd
+  tags:
+    - guests
+
+- name: get list of vms
+  virt: command=list_vms
+  register: libvirtd_vms
+  tags:
+    - guests
+
+- name: create directory for kickstart files
+  file:
+    path: "{{ libvirtd_boot_dir }}"
+    state: directory
+    mode: 0711
+  tags:
+    - guests
+
+- name: copy kickstart files
+  template:
+    src: "{{ item.ks }}"
+    dest: "{{ libvirtd_boot_dir }}/{{ item.name }}.ks"
+  when: item.ks is defined
+  with_items: "{{ libvirtd_guests }}"
+  tags:
+    - guests
+
+- name: add inject parameters
+  vars:
+    extra_args:
+      - "--initrd-inject={{ libvirtd_boot_dir }}/{{ item.name }}.ks"
+      - "-x 'ks=file:/{{ item.name }}.ks'"
+  set_fact:
+    libvirtd_initrd_inject: "{{ libvirtd_initrd_inject|default({}) | combine( { item.name: extra_args|join(' ') } ) }}"
+  when: item.ks is defined
+  with_items: "{{ libvirtd_guests }}"
+  tags:
+    - guests
+
+- name: create vm
+  command: virt-install --name {{ item.name }} --ram {{ item.mem }}
+           --vcpus {{ item.cpu }} --location {{ item.url }}
+           --disk {{ item.disk.path }}/{{ item.name }}.img,size={{ item.disk.size }}
+           --os-type {{ item.os.type }} --os-variant {{ item.os.variant }}
+           --network bridge=br0,model=virtio
+           --noautoconsole --autostart
+           --graphic vnc,password=testing --console pty,target_type=serial
+           -x 'console=tty0 console=ttyS0,115200n8 serial'
+           {{ libvirtd_initrd_inject[item.name]|default('') }}
+  when: item.name not in libvirtd_vms.list_vms
+  with_items: "{{ libvirtd_guests }}"
+  tags:
+    - guests
+
+- name: get guest info
+  virt: command=info
+  register: libvirtd_info
+  tags:
+    - guests
+
+- name: ensure all vms are running
+  virt: name={{ item.name }} command=start
+  when: libvirtd_info[item.name]['state'] != 'running'
+  with_items: "{{ libvirtd_guests }}"
+  tags:
+    - guests

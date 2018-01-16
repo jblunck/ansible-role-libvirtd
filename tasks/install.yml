@@ -1,0 +1,35 @@
+- name: ensure libvirt is installed
+  yum:
+    name: "@virt*"
+    state: installed
+
+- name: enable virtualization service
+  service:
+    name: libvirtd
+    enabled: yes
+
+- name: load local virtualization service remote public key
+  set_fact: libvirtd_remote_keys="{{ libvirtd_remote_keys + [ lookup('file', libvirtd_remote_keyfile)] }}"
+  when: libvirtd_remote_keyfile != ''
+
+- name: add virtualization service remote public key
+  vars:
+    libvirtd_remote_key: ''
+  authorized_key:
+    user: "{{ libvirtd_remote_user }}"
+    state: present
+    key: "{{ item }}"
+  with_items: "{{ libvirtd_remote_keys | list | unique }}"
+  when: libvirtd_remote_user != ''
+
+#
+# https://wiki.libvirt.org/page/SSHPolicyKitSetup
+# https://major.io/2015/04/11/run-virsh-and-access-libvirt-as-a-regular-user/
+#
+- name: install PolicyKit file
+  vars:
+    libvirtd_admin_group: "wheel"
+  template: src=49-org.libvirt.unix.manager.rules.j2 dest=/etc/polkit-1/rules.d/49-org.libvirt.unix.manager.rules
+  notify:
+    - restart libvirtd
+  when: libvirtd_remote_user != ''

@@ -1,0 +1,14 @@
+galaxy_info:
+  author: Jan Blunck
+  description: Role to roll out a libvirtd service.
+  license: license (BSD)
+  min_ansible_version: 2.2
+  platforms:
+    - name: EL
+      versions:
+      - all
+  galaxy_tags:
+    - system
+
+dependencies: []
+
